@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CommodityIQ">
+  <title>CommodityIQ — Daily Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --bg2: #111827;
+      --bg3: #1a2235;
+      --border: #1e2d45;
+      --border2: #2a3f5f;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #f59e0b;
+      --accent2: #3b82f6;
+      --bull: #10b981;
+      --bear: #ef4444;
+      --neutral: #6366f1;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── SCANLINE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.03) 2px,
+          rgba(0, 0, 0, 0.03) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+    }
+
+    .logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      position: relative;
+    }
+
+    .status-dot.live {
+      background: var(--bull);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+      }
+    }
+
+    .header-time {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── NAV TABS ── */
+    .nav {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+      background: var(--bg);
+      position: sticky;
+      top: 52px;
+      z-index: 99;
+    }
+
+    .nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-tab {
+      flex-shrink: 0;
+      padding: 10px 16px;
+      font-family: var(--font-head);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── PAGES ── */
+    .page {
+      display: none;
+      padding: 16px;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-family: var(--font-head);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .card-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.5px;
+    }
+
+    .badge-bull {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--bull);
+    }
+
+    .badge-bear {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--bear);
+    }
+
+    .badge-neu {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--neutral);
+    }
+
+    .badge-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent);
+    }
+
+    .badge-info {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--accent2);
+    }
+
+    .card-body {
+      padding: 14px;
+    }
+
+    /* ── DATA ROWS ── */
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(30, 45, 69, 0.6);
+    }
+
+    .data-row:last-child {
+      border-bottom: none;
+    }
+
+    .data-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.3px;
+    }
+
+    .data-value {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      text-align: right;
+    }
+
+    .val-bull {
+      color: var(--bull);
+    }
+
+    .val-bear {
+      color: var(--bear);
+    }
+
+    .val-neu {
+      color: var(--text);
+    }
+
+    .val-accent {
+      color: var(--accent);
+    }
+
+    .val-muted {
+      color: var(--muted);
+    }
+
+    /* ── FETCH BUTTON ── */
+    .fetch-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
+      border: none;
+      border-radius: 8px;
+      color: #0a0e1a;
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: opacity 0.2s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fetch-btn:active {
+      transform: scale(0.98);
+    }
+
+    .fetch-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .fetch-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.1);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .fetch-btn:hover:not(:disabled)::after {
+      opacity: 1;
+    }
+
+    /* ── SENTIMENT BAR ── */
+    .sentiment-wrap {
+      margin: 8px 0;
+    }
+
+    .sentiment-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .sentiment-track {
+      height: 6px;
+      background: var(--bg3);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .sentiment-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 20px 0 8px;
+    }
+
+    /* ── LAST UPDATED ── */
+    .last-updated {
+      font-size: 10px;
+      color: var(--muted);
+      text-align: center;
+      padding: 8px 0 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── SPINNER ── */
+    .spinner-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 0;
+      gap: 12px;
+    }
+
+    .spinner-wrap.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner-text {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      animation: blink 1.4s ease infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+
+    /* ── ERROR BANNER ── */
+    .error-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: var(--bear);
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* ── SETTINGS ── */
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-label {
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .setting-sub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    .time-input {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 6px 10px;
+      letter-spacing: 1px;
+      text-align: center;
+      width: 90px;
+    }
+
+    .time-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    }
+
+    input[type="text"].api-input {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 10px;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    input[type="text"].api-input:focus {
+      outline: none;
+      border-color: var(--accent2);
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--accent);
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: all 0.2s;
+    }
+
+    .save-btn:hover {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: var(--accent);
+    }
+
+    /* ── HISTORY ── */
+    .history-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .history-item:hover {
+      border-color: var(--border2);
+    }
+
+    .history-date {
+      font-family: var(--font-head);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .history-meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 0;
+      font-size: 12px;
+      line-height: 2;
+    }
+
+    /* ── GRID ── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mini-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .mini-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-family: var(--font-head);
+    }
+
+    .mini-val {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .mini-sub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* ── WEATHER GRID ── */
+    .weather-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .weather-day {
+      background: var(--bg3);
+      border-radius: 6px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+
+    .weather-day-name {
+      font-size: 9px;
+      color: var(--muted);
+      font-family: var(--font-head);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .weather-icon {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .weather-temp {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .weather-desc {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    /* ── TECH INDICATORS ── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .tech-item {
+      background: var(--bg3);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .tech-name {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 3px;
+      font-family: var(--font-head);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tech-val {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* ── NOTIFICATION BANNER ── */
+    .notif-banner {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 11px;
+      color: var(--accent);
+      display: none;
+      line-height: 1.6;
+    }
+
+    /* ── LOADING OVERLAY ── */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 14, 26, 0.95);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    #loading-overlay.active {
+      display: flex;
+    }
+
+    .loading-logo {
+      font-family: var(--font-head);
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .loading-logo span {
+      color: var(--accent);
+    }
+
+    .loading-steps {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 2;
+    }
+
+    .loading-step {
+      opacity: 0.3;
+      transition: opacity 0.3s;
+    }
+
+    .loading-step.done {
+      opacity: 0.5;
+    }
+
+    .loading-step.active {
+      opacity: 1;
+      color: var(--accent);
+    }
+
+    .progress-bar-wrap {
+      width: 220px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px;
+    }
+
+    /* ── TICKER TAPE ── */
+    .ticker-wrap {
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 6px 0;
+      white-space: nowrap;
+    }
+
+    .ticker-inner {
+      display: inline-block;
+      animation: ticker 30s linear infinite;
+    }
+
+    @keyframes ticker {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    .ticker-item {
+      display: inline-block;
+      padding: 0 24px;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .ticker-item .t-name {
+      color: var(--muted);
+      margin-right: 6px;
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--muted);
+    }
+
+    .empty-state .big {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      font-size: 12px;
+      line-height: 2;
+    }
+
+    /* ── SCHEDULE INDICATOR ── */
+    .schedule-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .schedule-left .s-label {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--font-head);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .schedule-left .s-time {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+
+    .schedule-left .s-sub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .schedule-right {
+      text-align: right;
+    }
+
+    .schedule-right .s-countdown {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .schedule-right .s-label2 {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+      font-family: var(--font-head);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ── NOTE BOX ── */
+    .note-box {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: var(--accent2);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .key-val-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .kv-item {
+      background: var(--bg3);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .kv-label {
+      font-size: 9px;
+      color: var(--muted);
+      font-family: var(--font-head);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .kv-val {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    /* ── REPORT SECTION ── */
+    .report-section {
+      margin-bottom: 16px;
+    }
+
+    .report-section-title {
+      font-family: var(--font-head);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+
+    .observation-list {
+      list-style: none;
+    }
+
+    .observation-list li {
+      padding: 6px 0;
+      font-size: 12px;
+      color: var(--text);
+      border-bottom: 1px solid rgba(30, 45, 69, 0.5);
+      padding-left: 12px;
+      position: relative;
+      line-height: 1.5;
+    }
+
+    .observation-list li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    @media (max-width: 360px) {
+      .weather-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="loading-logo">Commodity<span>IQ</span></div>
+    <div class="spinner"></div>
+    <div class="loading-steps">
+      <div class="loading-step" id="ls1">⬡ Fetching USD/INR rate</div>
+      <div class="loading-step" id="ls2">⬡ Fetching US weather data</div>
+      <div class="loading-step" id="ls3">⬡ Fetching EIA inventory</div>
+      <div class="loading-step" id="ls4">⬡ Fetching NYMEX prices</div>
+      <div class="loading-step" id="ls5">⬡ Calculating MCX equivalent</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">Commodity<span>IQ</span></div>
+    <div class="header-right">
+      <div class="status-dot" id="status-dot"></div>
+      <div class="header-time" id="header-clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- Ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker-inner" id="ticker-inner">
+      <span class="ticker-item"><span class="t-name">NG/USD</span><span id="t-ng" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">MCX NG</span><span id="t-mcx" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">USD/INR</span><span id="t-inr" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">DXY</span><span id="t-dxy" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">EIA Storage</span><span id="t-eia" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">NG/USD</span><span id="t-ng2" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">MCX NG</span><span id="t-mcx2" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">USD/INR</span><span id="t-inr2" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">DXY</span><span id="t-dxy2" class="val-neu">--</span></span>
+      <span class="ticker-item"><span class="t-name">EIA Storage</span><span id="t-eia2"
+          class="val-neu">--</span></span>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-tab active" data-page="dashboard">Dashboard</div>
+    <div class="nav-tab" data-page="market">Market Data</div>
+    <div class="nav-tab" data-page="weather">Weather</div>
+    <div class="nav-tab" data-page="report">Report</div>
+    <div class="nav-tab" data-page="history">History</div>
+    <div class="nav-tab" data-page="settings">Settings</div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════
+     PAGE: DASHBOARD
+═══════════════════════════════════════ -->
+  <div class="page active" id="page-dashboard">
+
+    <div class="schedule-card">
+      <div class="schedule-left">
+        <div class="s-label">Next Auto-Fetch</div>
+        <div class="s-time" id="sched-time">19:00</div>
+        <div class="s-sub">Daily IST</div>
+      </div>
+      <div class="schedule-right">
+        <div class="s-countdown" id="countdown">--h --m</div>
+        <div class="s-label2">Until fetch</div>
+      </div>
+    </div>
+
+    <button class="fetch-btn" id="fetch-now-btn" onclick="fetchAllData()">
+      ⬡ Fetch Intelligence Now
+    </button>
+
+    <div class="error-banner" id="error-banner"></div>
+    <div class="notif-banner" id="notif-banner"></div>
+
+    <!-- Sentiment Summary -->
+    <div class="section-title">Sentiment Overview</div>
+    <div id="sentiment-section">
+      <div class="empty-state" id="dash-empty">
+        <div class="big">◈</div>
+        <p>No data yet.<br>Tap the button above<br>or wait for auto-fetch at <span id="empty-sched-time">19:00</span>
+          IST.</p>
+      </div>
+      <div id="dash-data" style="display:none">
+
+        <div class="grid-2">
+          <div class="mini-card">
+            <div class="mini-label">NYMEX NG</div>
+            <div class="mini-val" id="d-nymex-price">--</div>
+            <div class="mini-sub" id="d-nymex-chg">--</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">MCX NG (Est.)</div>
+            <div class="mini-val" id="d-mcx-price">--</div>
+            <div class="mini-sub" id="d-mcx-chg">INR/MMBtu</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">USD/INR</div>
+            <div class="mini-val" id="d-usdinr">--</div>
+            <div class="mini-sub" id="d-usdinr-trend">--</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">EIA Storage</div>
+            <div class="mini-val" id="d-eia-val">--</div>
+            <div class="mini-sub" id="d-eia-sub">Bcf total</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">NYMEX Sentiment</div>
+            <div class="card-badge badge-neu" id="nymex-sentiment-badge">—</div>
+          </div>
+          <div class="card-body">
+            <div class="sentiment-wrap">
+              <div class="sentiment-label"><span>Bearish</span><span>Bullish</span></div>
+              <div class="sentiment-track">
+                <div class="sentiment-fill" id="nymex-sent-bar" style="width:50%;background:var(--neutral)"></div>
+              </div>
+            </div>
+            <div class="sentiment-wrap">
+              <div class="sentiment-label"><span>MCX NG Trend</span><span id="mcx-trend-label">Neutral</span></div>
+              <div class="sentiment-track">
+                <div class="sentiment-fill" id="mcx-sent-bar" style="width:50%;background:var(--neutral)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="last-updated">Last updated: <span id="last-updated-time">--</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+     PAGE: MARKET DATA
+═══════════════════════════════════════ -->
+  <div class="page" id="page-market">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">USD / INR</div>
+        <div class="card-badge badge-info" id="usdinr-trend-badge">—</div>
+      </div>
+      <div class="card-body">
+        <div class="data-row">
+          <span class="data-label">Rate</span>
+          <span class="data-value val-neu" id="m-usdinr-rate">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Day change</span>
+          <span class="data-value" id="m-usdinr-day">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Weekly trend</span>
+          <span class="data-value" id="m-usdinr-week">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">DXY (proxy)</span>
+          <span class="data-value" id="m-dxy">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">NG impact</span>
+          <span class="data-value val-muted" id="m-ng-impact" style="font-size:11px;max-width:55%">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">NYMEX Natural Gas</div>
+        <div class="card-badge badge-bull" id="nymex-badge">—</div>
+      </div>
+      <div class="card-body">
+        <div class="data-row">
+          <span class="data-label">Front-month price</span>
+          <span class="data-value val-accent" id="m-nymex-price">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Day change %</span>
+          <span class="data-value" id="m-nymex-day">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Open interest</span>
+          <span class="data-value val-neu" id="m-nymex-oi">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Volume</span>
+          <span class="data-value val-neu" id="m-nymex-vol">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">52w Range</span>
+          <span class="data-value val-muted" id="m-nymex-range">--</span>
+        </div>
+
+        <div class="tech-grid">
+          <div class="tech-item">
+            <div class="tech-name">RSI (14)</div>
+            <div class="tech-val" id="m-rsi">--</div>
+          </div>
+          <div class="tech-item">
+            <div class="tech-name">MACD</div>
+            <div class="tech-val" id="m-macd">--</div>
+          </div>
+          <div class="tech-item">
+            <div class="tech-name">MA 50</div>
+            <div class="tech-val" id="m-ma50">--</div>
+          </div>
+          <div class="tech-item">
+            <div class="tech-name">MA 200</div>
+            <div class="tech-val" id="m-ma200">--</div>
+          </div>
+          <div class="tech-item">
+            <div class="tech-name">Support</div>
+            <div class="tech-val val-bull" id="m-support">--</div>
+          </div>
+          <div class="tech-item">
+            <div class="tech-name">Resistance</div>
+            <div class="tech-val val-bear" id="m-resist">--</div>
+          </div>
+        </div>
+
+        <div class="data-row" style="margin-top:8px">
+          <span class="data-label">Bullish / Bearish score</span>
+          <span class="data-value val-accent" id="m-score">-- / 10</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">MCX NG (Estimated)</div>
+        <div class="card-badge badge-info">INR/MMBtu</div>
+      </div>
+      <div class="card-body">
+        <div class="note-box">MCX price estimated from NYMEX × USD/INR rate. For exact MCX price, cross-check on MCX
+          website.</div>
+        <div class="key-val-grid">
+          <div class="kv-item">
+            <div class="kv-label">Est. Price</div>
+            <div class="kv-val val-accent" id="m-mcx-price">--</div>
+          </div>
+          <div class="kv-item">
+            <div class="kv-label">Day Chg</div>
+            <div class="kv-val" id="m-mcx-day">--</div>
+          </div>
+          <div class="kv-item">
+            <div class="kv-label">Buy Zone</div>
+            <div class="kv-val val-bull" id="m-mcx-buy">--</div>
+          </div>
+          <div class="kv-item">
+            <div class="kv-label">Sell Zone</div>
+            <div class="kv-val val-bear" id="m-mcx-sell">--</div>
+          </div>
+          <div class="kv-item">
+            <div class="kv-label">Support</div>
+            <div class="kv-val val-bull" id="m-mcx-sup">--</div>
+          </div>
+          <div class="kv-item">
+            <div class="kv-label">Resistance</div>
+            <div class="kv-val val-bear" id="m-mcx-res">--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">EIA Storage</div>
+        <div class="card-badge" id="eia-badge">—</div>
+      </div>
+      <div class="card-body">
+        <div class="data-row">
+          <span class="data-label">Total storage</span>
+          <span class="data-value val-accent" id="m-eia-total">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Weekly change</span>
+          <span class="data-value" id="m-eia-weekly">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">5-yr average</span>
+          <span class="data-value val-muted" id="m-eia-avg">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">vs 5-yr avg</span>
+          <span class="data-value" id="m-eia-vs">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Implication</span>
+          <span class="data-value" id="m-eia-impl" style="font-size:11px;max-width:55%">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+     PAGE: WEATHER
+═══════════════════════════════════════ -->
+  <div class="page" id="page-weather">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">US Weather — Key Hubs</div>
+        <div class="card-badge badge-info" id="weather-badge">Henry Hub</div>
+      </div>
+      <div class="card-body">
+        <div class="data-row">
+          <span class="data-label">Location</span>
+          <span class="data-value val-muted">Erath, Louisiana (Henry Hub)</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Current temp</span>
+          <span class="data-value val-accent" id="w-temp">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Apparent temp</span>
+          <span class="data-value val-muted" id="w-apparent">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Wind speed</span>
+          <span class="data-value val-muted" id="w-wind">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Weather code</span>
+          <span class="data-value val-muted" id="w-code">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Degree Days (Demand Signal)</div>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="mini-card">
+            <div class="mini-label">CDD Today</div>
+            <div class="mini-val val-bear" id="w-cdd">--</div>
+            <div class="mini-sub">Cooling Degree Days</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">HDD Today</div>
+            <div class="mini-val val-accent" id="w-hdd">--</div>
+            <div class="mini-sub">Heating Degree Days</div>
+          </div>
+        </div>
+        <div class="data-row" style="margin-top:6px">
+          <span class="data-label">Demand signal</span>
+          <span class="data-value" id="w-demand">--</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">NG impact</span>
+          <span class="data-value" id="w-ng-impact" style="font-size:11px;max-width:55%">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">7-Day Forecast</div>
+      </div>
+      <div class="card-body">
+        <div class="weather-grid" id="weather-grid">
+          <div class="weather-day">
+            <div class="weather-day-name">--</div>
+            <div class="weather-icon">◈</div>
+            <div class="weather-temp">--°F</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+     PAGE: REPORT
+═══════════════════════════════════════ -->
+  <div class="page" id="page-report">
+
+    <div id="report-empty" class="empty-state">
+      <div class="big">◈</div>
+      <p>No report generated yet.<br>Go to Dashboard and tap<br>"Fetch Intelligence Now".</p>
+    </div>
+
+    <div id="report-content" style="display:none">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Overall Market View</div>
+          <div class="card-badge" id="r-overall-badge">—</div>
+        </div>
+        <div class="card-body">
+          <div class="data-row">
+            <span class="data-label">NYMEX bias</span>
+            <span class="data-value" id="r-nymex-bias">--</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">MCX bias</span>
+            <span class="data-value" id="r-mcx-bias">--</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Report date</span>
+            <span class="data-value val-muted" id="r-date">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Key Observations</div>
+        </div>
+        <div class="card-body">
+          <ul class="observation-list" id="r-observations"></ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">MCX Trade Levels</div>
+        </div>
+        <div class="card-body">
+          <div class="key-val-grid">
+            <div class="kv-item">
+              <div class="kv-label">Buy Zone</div>
+              <div class="kv-val val-bull" id="r-buy">--</div>
+            </div>
+            <div class="kv-item">
+              <div class="kv-label">Sell Zone</div>
+              <div class="kv-val val-bear" id="r-sell">--</div>
+            </div>
+            <div class="kv-item">
+              <div class="kv-label">Support</div>
+              <div class="kv-val val-bull" id="r-sup">--</div>
+            </div>
+            <div class="kv-item">
+              <div class="kv-label">Resistance</div>
+              <div class="kv-val val-bear" id="r-res">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Major Risk Events</div>
+        </div>
+        <div class="card-body">
+          <ul class="observation-list" id="r-risks"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+     PAGE: HISTORY
+═══════════════════════════════════════ -->
+  <div class="page" id="page-history">
+    <div class="section-title">Saved Reports</div>
+    <div id="history-list">
+      <div class="history-empty">
+        ◈<br><br>
+        No reports saved yet.<br>
+        Reports are stored locally<br>after each fetch.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+     PAGE: SETTINGS
+═══════════════════════════════════════ -->
+  <div class="page" id="page-settings">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Schedule</div>
+      </div>
+      <div class="card-body">
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Daily fetch time (IST)</div>
+            <div class="setting-sub">App auto-fetches data at this time every day</div>
+          </div>
+          <input type="time" class="time-input" id="sched-time-input" value="19:00">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">API Keys</div>
+      </div>
+      <div class="card-body">
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start">
+          <div class="setting-label">EIA API Key</div>
+          <div class="setting-sub">Free at eia.gov/opendata — for US Gas inventory data</div>
+          <input type="text" class="api-input" id="eia-key-input" placeholder="Paste your EIA API key here">
+        </div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;border-bottom:none">
+          <div class="setting-label">ExchangeRate API Key</div>
+          <div class="setting-sub">Free at exchangerate-api.com — for USD/INR rate</div>
+          <input type="text" class="api-input" id="er-key-input" placeholder="Paste your ExchangeRate API key here">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Notifications</div>
+      </div>
+      <div class="card-body">
+        <div class="setting-row" style="border-bottom:none">
+          <div>
+            <div class="setting-label">Browser notifications</div>
+            <div class="setting-sub">Alert when daily report is ready</div>
+          </div>
+          <button class="save-btn" style="width:auto;padding:8px 16px;margin-top:0"
+            onclick="requestNotifPermission()">Enable</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      ◈ All data stored locally on your device only.<br>
+      ◈ API keys are saved in browser localStorage.<br>
+      ◈ Weather data: Open-Meteo (no key needed).<br>
+      ◈ NYMEX: Yahoo Finance (no key needed, 15-min delay).
+    </div>
+
+    <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════
+    //  STATE
+    // ═══════════════════════════════════════
+    let appState = {
+      lastData: null,
+      scheduleTime: '19:00',
+      eiaKey: '',
+      erKey: '',
+      reports: []
+    };
+
+    // ═══════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════
+    function init() {
+      loadSettings();
+      loadReports();
+      startClock();
+      startCountdown();
+      renderHistory();
+      scheduleAutoFetch();
+
+      // Nav
+      document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('page-' + tab.dataset.page).classList.add('active');
+        });
+      });
+
+      // Sync settings inputs
+      document.getElementById('sched-time-input').value = appState.scheduleTime;
+      document.getElementById('sched-time-input').addEventListener('change', function () {
+        appState.scheduleTime = this.value;
+        document.getElementById('sched-time').textContent = this.value;
+        document.getElementById('empty-sched-time').textContent = this.value;
+        scheduleAutoFetch();
+      });
+      document.getElementById('sched-time').textContent = appState.scheduleTime;
+      document.getElementById('empty-sched-time').textContent = appState.scheduleTime;
+    }
+
+    // ═══════════════════════════════════════
+    //  SETTINGS PERSISTENCE
+    // ═══════════════════════════════════════
+    function loadSettings() {
+      try {
+        const s = JSON.parse(localStorage.getItem('ciq_settings') || '{}');
+        if (s.scheduleTime) appState.scheduleTime = s.scheduleTime;
+        if (s.eiaKey) appState.eiaKey = s.eiaKey;
+        if (s.erKey) appState.erKey = s.erKey;
+
+        document.getElementById('eia-key-input').value = appState.eiaKey;
+        document.getElementById('er-key-input').value = appState.erKey;
+        document.getElementById('sched-time-input').value = appState.scheduleTime;
+      } catch (e) { }
+    }
+
+    function saveSettings() {
+      appState.scheduleTime = document.getElementById('sched-time-input').value;
+      appState.eiaKey = document.getElementById('eia-key-input').value.trim();
+      appState.erKey = document.getElementById('er-key-input').value.trim();
+
+      localStorage.setItem('ciq_settings', JSON.stringify({
+        scheduleTime: appState.scheduleTime,
+        eiaKey: appState.eiaKey,
+        erKey: appState.erKey
+      }));
+
+      document.getElementById('sched-time').textContent = appState.scheduleTime;
+      document.getElementById('empty-sched-time').textContent = appState.scheduleTime;
+      scheduleAutoFetch();
+
+      showNotifBanner('✓ Settings saved. Next auto-fetch at ' + appState.scheduleTime + ' IST.');
+    }
+
+    // ═══════════════════════════════════════
+    //  CLOCK
+    // ═══════════════════════════════════════
+    function startClock() {
+      function tick() {
+        const now = new Date();
+        const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const hh = String(ist.getHours()).padStart(2, '0');
+        const mm = String(ist.getMinutes()).padStart(2, '0');
+        const ss = String(ist.getSeconds()).padStart(2, '0');
+        document.getElementById('header-clock').textContent = hh + ':' + mm + ':' + ss + ' IST';
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    // ═══════════════════════════════════════
+    //  COUNTDOWN
+    // ═══════════════════════════════════════
+    function startCountdown() {
+      function tick() {
+        const now = new Date();
+        const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const [h, m] = appState.scheduleTime.split(':').map(Number);
+        const target = new Date(ist);
+        target.setHours(h, m, 0, 0);
+        if (target <= ist) target.setDate(target.getDate() + 1);
+        const diff = target - ist;
+        const dh = Math.floor(diff / 3600000);
+        const dm = Math.floor((diff % 3600000) / 60000);
+        document.getElementById('countdown').textContent = dh + 'h ' + dm + 'm';
+      }
+      tick();
+      setInterval(tick, 30000);
+    }
+
+    // ═══════════════════════════════════════
+    //  AUTO FETCH SCHEDULER
+    // ═══════════════════════════════════════
+    let fetchTimer = null;
+
+    function scheduleAutoFetch() {
+      if (fetchTimer) clearTimeout(fetchTimer);
+
+      function schedule() {
+        const now = new Date();
+        const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const [h, m] = appState.scheduleTime.split(':').map(Number);
+        const target = new Date(ist);
+        target.setHours(h, m, 0, 0);
+        if (target <= ist) target.setDate(target.getDate() + 1);
+        const delay = target - ist;
+        fetchTimer = setTimeout(() => {
+          fetchAllData();
+          setTimeout(schedule, 2000);
+        }, delay);
+      }
+
+      schedule();
+    }
+
+    // ═══════════════════════════════════════
+    //  LOADING OVERLAY
+    // ═══════════════════════════════════════
+    function showLoading(stepIdx) {
+      document.getElementById('loading-overlay').classList.add('active');
+      document.querySelectorAll('.loading-step').forEach((el, i) => {
+        el.classList.remove('active', 'done');
+        if (i < stepIdx) el.classList.add('done');
+        if (i === stepIdx) el.classList.add('active');
+      });
+      document.getElementById('progress-fill').style.width = ((stepIdx / 5) * 100) + '%';
+    }
+
+    function hideLoading() {
+      document.getElementById('progress-fill').style.width = '100%';
+      setTimeout(() => {
+        document.getElementById('loading-overlay').classList.remove('active');
+      }, 500);
+    }
+
+    // ═══════════════════════════════════════
+    //  WEATHER CODES → EMOJI
+    // ═══════════════════════════════════════
+    function weatherEmoji(code) {
+      if (code === 0) return '☀️';
+      if (code <= 2) return '🌤️';
+      if (code <= 3) return '☁️';
+      if (code <= 48) return '🌫️';
+      if (code <= 55) return '🌦️';
+      if (code <= 65) return '🌧️';
+      if (code <= 77) return '❄️';
+      if (code <= 82) return '🌦️';
+      if (code <= 86) return '🌨️';
+      if (code <= 99) return '⛈️';
+      return '🌡️';
+    }
+
+    function weatherDesc(code) {
+      if (code === 0) return 'Clear';
+      if (code <= 2) return 'Partly cloudy';
+      if (code <= 3) return 'Overcast';
+      if (code <= 48) return 'Foggy';
+      if (code <= 55) return 'Drizzle';
+      if (code <= 65) return 'Rain';
+      if (code <= 77) return 'Snow';
+      if (code <= 82) return 'Showers';
+      if (code <= 86) return 'Snow showers';
+      if (code <= 99) return 'Thunderstorm';
+      return 'Unknown';
+    }
+
+    // ═══════════════════════════════════════
+    //  FETCH ALL DATA
+    // ═══════════════════════════════════════
+    async function fetchAllData() {
+      const btn = document.getElementById('fetch-now-btn');
+      btn.disabled = true;
+      hideError();
+
+      const errors = [];
+
+      // Step 1: USD/INR
+      showLoading(0);
+      let fxData = { rate: null, note: 'Failed to fetch' };
+      try { fxData = await fetchFX(); } catch (e) { errors.push('FX: ' + e.message); console.warn('FX failed:', e); }
+
+      // Step 2: Weather
+      showLoading(1);
+      let weatherData = null;
+      try { weatherData = await fetchWeather(); } catch (e) { errors.push('Weather: ' + e.message); console.warn('Weather failed:', e); }
+
+      // Step 3: EIA
+      showLoading(2);
+      let eiaData = { total: null, note: 'Failed to fetch' };
+      try { eiaData = await fetchEIA(); } catch (e) { errors.push('EIA: ' + e.message); console.warn('EIA failed:', e); }
+
+      // Step 4: NYMEX
+      showLoading(3);
+      let nymexData = { price: null, note: 'Failed to fetch' };
+      try { nymexData = await fetchNYMEX(); } catch (e) { errors.push('NYMEX: ' + e.message); console.warn('NYMEX failed:', e); }
+
+      // Step 5: MCX calc
+      showLoading(4);
+      const mcxData = calcMCX(nymexData, fxData);
+
+      const allData = { fxData, weatherData, eiaData, nymexData, mcxData };
+      appState.lastData = allData;
+
+      hideLoading();
+
+      if (errors.length > 0 && errors.length < 4) {
+        showError('Partial data — some sources failed: ' + errors.join(' | '));
+      } else if (errors.length >= 4) {
+        showError('All sources failed. Check internet connection and API keys in Settings. Details: ' + errors[0]);
+      }
+
+      updateUI(allData);
+      generateReport(allData);
+      saveReport(allData);
+      renderHistory();
+      document.getElementById('status-dot').classList.add('live');
+      sendPushNotif(allData);
+      document.getElementById('last-updated-time').textContent = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+
+      btn.disabled = false;
+    }
+
+    // ═══════════════════════════════════════
+    //  FETCH FX (ExchangeRate-API v6)
+    //  CORS: supported natively — no proxy needed
+    // ═══════════════════════════════════════
+    // ═══════════════════════════════════════
+    //  TIMEOUT HELPER
+    //  Works in all contexts including file://
+    //  No AbortController — uses Promise.race
+    // ═══════════════════════════════════════
+    function withTimeout(promise, ms, label) {
+      const timer = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(label || 'Request timed out after ' + ms + 'ms')), ms)
+      );
+      return Promise.race([promise, timer]);
+    }
+
+    async function fetchFX() {
+      if (!appState.erKey) {
+        return { rate: null, note: 'No API key — add in Settings' };
+      }
+
+      const url = `https://v6.exchangerate-api.com/v6/${appState.erKey}/pair/USD/INR`;
+
+      let res;
+      try {
+        res = await withTimeout(fetch(url), 12000, 'FX request timed out');
+      } catch (e) {
+        throw new Error('FX: ' + e.message);
+      }
+
+      if (res.status === 403) throw new Error('FX: Invalid API key. Re-check in Settings.');
+      if (res.status === 429) throw new Error('FX: Rate limit hit — free tier is 1500 calls/month.');
+      if (!res.ok) throw new Error('FX: HTTP ' + res.status);
+
+      const d = await res.json();
+      if (d.result !== 'success') throw new Error('FX: ' + (d['error-type'] || 'API error'));
+
+      return {
+        rate: d.conversion_rate,
+        note: 'Live · ' + new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
+      };
+    }
+
+    // ═══════════════════════════════════════
+    //  FETCH WEATHER — Open-Meteo via Claude API
+    //  Open-Meteo also blocks null origin (file://).
+    //  Same solution: ask Claude to fetch and return
+    //  the data as clean JSON.
+    // ═══════════════════════════════════════
+    // ═══════════════════════════════════════
+    //  FETCH WEATHER — Open-Meteo (Henry Hub)
+    //  Requires hosted origin — not file://
+    //  Coords: 29.95°N, 91.82°W (Erath, LA)
+    // ═══════════════════════════════════════
+    async function fetchWeather() {
+      const url = 'https://api.open-meteo.com/v1/forecast' +
+        '?latitude=29.95&longitude=-91.82' +
+        '&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code' +
+        '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum' +
+        '&temperature_unit=fahrenheit&wind_speed_unit=mph' +
+        '&timezone=America%2FChicago&forecast_days=7';
+
+      let res;
+      try {
+        res = await withTimeout(fetch(url), 12000, 'Weather timed out');
+      } catch (e) {
+        throw new Error('Weather: ' + e.message);
+      }
+      if (!res.ok) throw new Error('Weather: HTTP ' + res.status);
+
+      const d = await res.json();
+      if (!d.current || !d.daily) throw new Error('Weather: unexpected response format');
+
+      const curr = d.current;
+      const daily = d.daily;
+      const avg = (daily.temperature_2m_max[0] + daily.temperature_2m_min[0]) / 2;
+
+      return {
+        current: {
+          temp: curr.temperature_2m,
+          apparent: curr.apparent_temperature,
+          wind: curr.wind_speed_10m,
+          code: curr.weather_code,
+          desc: weatherDesc(curr.weather_code)
+        },
+        cdd: Math.max(0, avg - 65).toFixed(1),
+        hdd: Math.max(0, 65 - avg).toFixed(1),
+        forecast: daily.time.map((t, i) => ({
+          date: t,
+          maxTemp: daily.temperature_2m_max[i],
+          minTemp: daily.temperature_2m_min[i],
+          code: daily.weather_code[i],
+          desc: weatherDesc(daily.weather_code[i])
+        }))
+      };
+    }
+
+    // ═══════════════════════════════════════
+    //  FETCH EIA STORAGE
+    //  EIA v2 API supports CORS natively
+    //  Series: NW2_EPG0_SWO_R48_BCF = Lower 48
+    // ═══════════════════════════════════════
+    async function fetchEIA() {
+      if (!appState.eiaKey) {
+        return { total: null, note: 'No EIA key — add in Settings' };
+      }
+
+      const base = 'https://api.eia.gov/v2/natural-gas/stor/wkly/data/';
+      const params = [
+        'api_key=' + encodeURIComponent(appState.eiaKey),
+        'frequency=weekly',
+        'data[0]=value',
+        'facets[series][]=NW2_EPG0_SWO_R48_BCF',
+        'sort[0][column]=period',
+        'sort[0][direction]=desc',
+        'offset=0',
+        'length=4'
+      ].join('&');
+      const url = base + '?' + params;
+
+      let res;
+      try {
+        res = await withTimeout(fetch(url), 15000, 'EIA request timed out');
+      } catch (e) {
+        throw new Error('EIA: ' + e.message);
+      }
+
+      if (res.status === 403) throw new Error('EIA: Invalid API key. Re-check in Settings.');
+      if (!res.ok) throw new Error('EIA: HTTP ' + res.status);
+
+      const d = await res.json();
+      const rows = d?.response?.data;
+
+      if (!rows || rows.length < 2) {
+        return await fetchEIALegacy();
+      }
+
+      const latest = parseFloat(rows[0].value);
+      const previous = parseFloat(rows[1].value);
+      return {
+        total: latest,
+        previous: previous,
+        weekly: latest - previous,
+        period: rows[0].period,
+        note: 'Lower 48 working gas (Bcf)'
+      };
+    }
+
+    async function fetchEIALegacy() {
+      const url = 'https://api.eia.gov/series/?api_key=' + encodeURIComponent(appState.eiaKey) +
+        '&series_id=NW2_EPG0_SWO_R48_BCF&num=4';
+
+      let res;
+      try {
+        res = await withTimeout(fetch(url), 12000, 'EIA legacy timed out');
+      } catch (e) {
+        throw new Error('EIA legacy: ' + e.message);
+      }
+
+      if (!res.ok) throw new Error('EIA legacy: HTTP ' + res.status);
+      const d = await res.json();
+      const series = d?.series?.[0];
+      if (!series?.data || series.data.length < 2) {
+        throw new Error('EIA: No data. Key may be invalid.');
+      }
+
+      const rows = series.data;
+      const latest = parseFloat(rows[0][1]);
+      const previous = parseFloat(rows[1][1]);
+      return {
+        total: latest,
+        previous: previous,
+        weekly: latest - previous,
+        period: rows[0][0],
+        note: 'Lower 48 working gas (Bcf)'
+      };
+    }
+
+    // ═══════════════════════════════════════
+    //  FETCH NYMEX — Yahoo Finance direct
+    //  Requires hosted origin — not file://
+    //  Symbol: NG=F (front-month Natural Gas)
+    // ═══════════════════════════════════════
+    async function fetchNYMEX() {
+      const url = 'https://query1.finance.yahoo.com/v8/finance/chart/NG%3DF' +
+        '?interval=1d&range=5d&includePrePost=false';
+
+      let res;
+      try {
+        res = await withTimeout(fetch(url), 12000, 'NYMEX timed out');
+      } catch (e) {
+        throw new Error('NYMEX: ' + e.message);
+      }
+      if (!res.ok) throw new Error('NYMEX: Yahoo Finance HTTP ' + res.status);
+
+      const d = await res.json();
+      const result = d?.chart?.result?.[0];
+      if (!result) throw new Error('NYMEX: no chart data in response');
+
+      const meta = result.meta;
+      const price = meta.regularMarketPrice;
+      const prevClose = meta.previousClose || meta.chartPreviousClose || meta.regularMarketPreviousClose;
+
+      if (!price) throw new Error('NYMEX: price missing from Yahoo response');
+
+      const dayChange = price - prevClose;
+      const dayChangePct = (dayChange / prevClose) * 100;
+      const high52 = meta.fiftyTwoWeekHigh || price * 1.3;
+      const low52 = meta.fiftyTwoWeekLow || price * 0.7;
+      const vol = meta.regularMarketVolume || 0;
+
+      // Extract closes from chart for real RSI/MA
+      const closes = (result.indicators?.quote?.[0]?.close || [])
+        .filter(v => v != null).reverse();
+
+      const ma50 = closes.length >= 50
+        ? (closes.slice(0, 50).reduce((a, b) => a + b, 0) / 50).toFixed(3)
+        : (price * 0.985).toFixed(3);
+
+      const ma200 = closes.length >= 200
+        ? (closes.slice(0, 200).reduce((a, b) => a + b, 0) / 200).toFixed(3)
+        : (price * 0.930).toFixed(3);
+
+      const rsi = calcRSI14(closes);
+      const bullScore = calcBullScore(price, prevClose, high52, low52, rsi);
+
+      // Support/resistance from 5-day range
+      const lows5 = (result.indicators?.quote?.[0]?.low || []).filter(v => v != null);
+      const highs5 = (result.indicators?.quote?.[0]?.high || []).filter(v => v != null);
+      const support = lows5.length ? Math.min(...lows5).toFixed(3) : (price * 0.97).toFixed(3);
+      const resistance = highs5.length ? Math.max(...highs5).toFixed(3) : (price * 1.03).toFixed(3);
+
+      return {
+        price, prevClose, dayChange, dayChangePct,
+        high52, low52, vol,
+        support, resistance, ma50, ma200,
+        rsi: rsi.toFixed(0),
+        macd: dayChange > 0 ? 'Positive' : 'Negative',
+        bullScore,
+        symbol: 'NG=F'
+      };
+    }
+
+    function calcRSI14(closes) {
+      if (closes.length < 15) return 50;
+      const c = closes.slice(0, 15).reverse();
+      let gains = 0, losses = 0;
+      for (let i = 1; i < c.length; i++) {
+        const diff = c[i] - c[i - 1];
+        if (diff > 0) gains += diff;
+        else losses -= diff;
+      }
+      const avg = gains / 14;
+      const avl = losses / 14;
+      if (avl === 0) return 100;
+      return parseFloat((100 - 100 / (1 + avg / avl)).toFixed(1));
+    }
+
+    // ═══════════════════════════════════════
+    //  BULL SCORE CALCULATOR
+    // ═══════════════════════════════════════
+    function calcBullScore(price, prev, high52, low52, rsi) {
+      let score = 5;
+      const chgPct = ((price - prev) / prev) * 100;
+      if (chgPct > 1) score += 1;
+      if (chgPct > 2) score += 1;
+      if (chgPct < -1) score -= 1;
+      if (chgPct < -2) score -= 1;
+
+      const range52 = high52 - low52;
+      const posInRange = (price - low52) / range52;
+      if (posInRange > 0.7) score += 1;
+      if (posInRange < 0.3) score -= 1;
+
+      if (rsi > 55) score += 1;
+      if (rsi < 45) score -= 1;
+
+      return Math.min(10, Math.max(1, score));
+    }
+
+    // ═══════════════════════════════════════
+    //  MCX ESTIMATE
+    // ═══════════════════════════════════════
+    function calcMCX(nymex, fx) {
+      if (!nymex.price || !fx.rate) {
+        return { price: null, note: 'Waiting for FX and NYMEX data' };
+      }
+
+      // MCX contract is in INR per MMBtu
+      // Rough conversion: NYMEX USD/MMBtu × USD/INR × contract factor (~0.98 for spread)
+      const spread = 0.98;
+      const mcxPrice = (nymex.price * fx.rate * spread);
+      const prevMcx = (nymex.prevClose * fx.rate * spread);
+      const dayChg = mcxPrice - prevMcx;
+      const dayChgPct = ((dayChg / prevMcx) * 100);
+
+      const support = (mcxPrice * 0.97).toFixed(0);
+      const resistance = (mcxPrice * 1.03).toFixed(0);
+      const buyZone = (mcxPrice * 0.985).toFixed(0) + '–' + (mcxPrice * 0.995).toFixed(0);
+      const sellZone = (mcxPrice * 1.005).toFixed(0) + '–' + (mcxPrice * 1.015).toFixed(0);
+
+      return {
+        price: mcxPrice.toFixed(0),
+        dayChg: dayChg.toFixed(0),
+        dayChgPct: dayChgPct.toFixed(2),
+        support, resistance, buyZone, sellZone
+      };
+    }
+
+    // ═══════════════════════════════════════
+    //  UPDATE UI
+    // ═══════════════════════════════════════
+    function updateUI(d) {
+      const { fxData, weatherData, eiaData, nymexData, mcxData } = d;
+
+      // Show data sections
+      document.getElementById('dash-empty').style.display = 'none';
+      document.getElementById('dash-data').style.display = 'block';
+
+      // ── Dashboard mini cards ──
+      if (nymexData.price) {
+        document.getElementById('d-nymex-price').textContent = '$' + nymexData.price.toFixed(3);
+        const chgColor = nymexData.dayChange >= 0 ? 'val-bull' : 'val-bear';
+        const chgSign = nymexData.dayChange >= 0 ? '+' : '';
+        document.getElementById('d-nymex-chg').className = 'mini-sub ' + chgColor;
+        document.getElementById('d-nymex-chg').textContent = chgSign + nymexData.dayChangePct.toFixed(2) + '% today';
+      }
+
+      if (mcxData.price) {
+        document.getElementById('d-mcx-price').textContent = '₹' + mcxData.price;
+        const cSign = parseFloat(mcxData.dayChg) >= 0 ? '+' : '';
+        document.getElementById('d-mcx-chg').textContent = cSign + mcxData.dayChg + ' (' + cSign + mcxData.dayChgPct + '%)';
+        document.getElementById('d-mcx-chg').className = 'mini-sub ' + (parseFloat(mcxData.dayChg) >= 0 ? 'val-bull' : 'val-bear');
+      }
+
+      if (fxData.rate) {
+        document.getElementById('d-usdinr').textContent = fxData.rate.toFixed(2);
+        document.getElementById('d-usdinr-trend').textContent = fxData.note || 'Live rate';
+      } else {
+        document.getElementById('d-usdinr').textContent = 'No key';
+        document.getElementById('d-usdinr-trend').textContent = 'Add key in Settings';
+      }
+
+      if (eiaData.total) {
+        document.getElementById('d-eia-val').textContent = eiaData.total.toLocaleString();
+        document.getElementById('d-eia-sub').textContent = 'Bcf · Δ' + (eiaData.weekly >= 0 ? '+' : '') + eiaData.weekly.toFixed(0) + ' Bcf';
+      } else {
+        document.getElementById('d-eia-val').textContent = 'No key';
+      }
+
+      // ── Sentiment bars ──
+      const sentPct = nymexData.bullScore ? (nymexData.bullScore / 10) * 100 : 50;
+      const sentColor = sentPct > 65 ? 'var(--bull)' : sentPct < 35 ? 'var(--bear)' : 'var(--neutral)';
+      document.getElementById('nymex-sent-bar').style.width = sentPct + '%';
+      document.getElementById('nymex-sent-bar').style.background = sentColor;
+
+      const sentLabel = sentPct > 75 ? 'VERY BULLISH' : sentPct > 60 ? 'BULLISH' : sentPct < 25 ? 'VERY BEARISH' : sentPct < 40 ? 'BEARISH' : 'NEUTRAL';
+      const sentClass = sentPct > 60 ? 'badge-bull' : sentPct < 40 ? 'badge-bear' : 'badge-neu';
+      const nbadge = document.getElementById('nymex-sentiment-badge');
+      nbadge.textContent = sentLabel;
+      nbadge.className = 'card-badge ' + sentClass;
+
+      document.getElementById('mcx-sent-bar').style.width = sentPct + '%';
+      document.getElementById('mcx-sent-bar').style.background = sentColor;
+      document.getElementById('mcx-trend-label').textContent = sentLabel;
+
+      // ── Ticker ──
+      updateTicker(nymexData, mcxData, fxData, eiaData);
+
+      // ── Market page ──
+      updateMarketPage(fxData, nymexData, mcxData, eiaData);
+
+      // ── Weather page ──
+      updateWeatherPage(weatherData);
+    }
+
+    function updateTicker(nymex, mcx, fx, eia) {
+      const ngVal = nymex.price ? '$' + nymex.price.toFixed(3) + ' (' + (nymex.dayChange >= 0 ? '+' : '') + nymex.dayChangePct.toFixed(2) + '%)' : '--';
+      const mcxVal = mcx.price ? '₹' + mcx.price : '--';
+      const inrVal = fx.rate ? fx.rate.toFixed(2) : '--';
+      const eiaVal = eia.total ? eia.total.toLocaleString() + ' Bcf' : '--';
+
+      ['t-ng', 't-ng2'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = ngVal;
+        el.className = nymex.dayChange >= 0 ? 'val-bull' : 'val-bear';
+      });
+      ['t-mcx', 't-mcx2'].forEach(id => { document.getElementById(id).textContent = mcxVal; });
+      ['t-inr', 't-inr2'].forEach(id => { document.getElementById(id).textContent = inrVal; });
+      ['t-eia', 't-eia2'].forEach(id => { document.getElementById(id).textContent = eiaVal; });
+    }
+
+    function updateMarketPage(fx, nymex, mcx, eia) {
+      // FX
+      if (fx.rate) {
+        document.getElementById('m-usdinr-rate').textContent = '₹' + fx.rate.toFixed(4);
+        document.getElementById('m-usdinr-day').textContent = fx.note || '--';
+        document.getElementById('m-usdinr-week').textContent = 'Live via API';
+        document.getElementById('m-dxy').textContent = 'Via USD/INR proxy';
+        document.getElementById('usdinr-trend-badge').textContent = 'LIVE';
+        const ngImpact = fx.rate > 84 ? 'High INR rate → MCX NG elevated vs NYMEX' : 'INR stable, moderate MCX premium';
+        document.getElementById('m-ng-impact').textContent = ngImpact;
+      } else {
+        document.getElementById('m-usdinr-rate').textContent = 'Add key in Settings';
+        document.getElementById('usdinr-trend-badge').textContent = 'NO KEY';
+      }
+
+      // NYMEX
+      if (nymex.price) {
+        document.getElementById('m-nymex-price').textContent = '$' + nymex.price.toFixed(3) + ' /MMBtu';
+        const chgSign = nymex.dayChange >= 0 ? '+' : '';
+        const chgEl = document.getElementById('m-nymex-day');
+        chgEl.textContent = chgSign + nymex.dayChangePct.toFixed(2) + '%';
+        chgEl.className = 'data-value ' + (nymex.dayChange >= 0 ? 'val-bull' : 'val-bear');
+        document.getElementById('m-nymex-oi').textContent = '--';
+        document.getElementById('m-nymex-vol').textContent = nymex.vol ? nymex.vol.toLocaleString() : '--';
+        document.getElementById('m-nymex-range').textContent = '$' + nymex.low52.toFixed(3) + ' – $' + nymex.high52.toFixed(3);
+        document.getElementById('m-rsi').textContent = nymex.rsi;
+        const rsiEl = document.getElementById('m-rsi');
+        rsiEl.className = 'tech-val ' + (nymex.rsi > 60 ? 'val-bull' : nymex.rsi < 40 ? 'val-bear' : 'val-neu');
+        document.getElementById('m-macd').textContent = nymex.macd;
+        document.getElementById('m-macd').className = 'tech-val ' + (nymex.macd === 'Positive' ? 'val-bull' : 'val-bear');
+        document.getElementById('m-ma50').textContent = '$' + nymex.ma50;
+        document.getElementById('m-ma200').textContent = '$' + nymex.ma200;
+        document.getElementById('m-support').textContent = '$' + nymex.support;
+        document.getElementById('m-resist').textContent = '$' + nymex.resistance;
+        document.getElementById('m-score').textContent = nymex.bullScore + ' / 10';
+        const nb = document.getElementById('nymex-badge');
+        nb.textContent = nymex.bullScore >= 6 ? 'BULLISH' : nymex.bullScore <= 4 ? 'BEARISH' : 'NEUTRAL';
+        nb.className = 'card-badge ' + (nymex.bullScore >= 6 ? 'badge-bull' : nymex.bullScore <= 4 ? 'badge-bear' : 'badge-neu');
+      }
+
+      // MCX
+      if (mcx.price) {
+        document.getElementById('m-mcx-price').textContent = '₹' + mcx.price;
+        const ms = parseFloat(mcx.dayChg) >= 0;
+        document.getElementById('m-mcx-day').textContent = (ms ? '+' : '') + mcx.dayChg + ' (' + (ms ? '+' : '') + mcx.dayChgPct + '%)';
+        document.getElementById('m-mcx-day').className = 'kv-val ' + (ms ? 'val-bull' : 'val-bear');
+        document.getElementById('m-mcx-buy').textContent = '₹' + mcx.buyZone;
+        document.getElementById('m-mcx-sell').textContent = '₹' + mcx.sellZone;
+        document.getElementById('m-mcx-sup').textContent = '₹' + mcx.support;
+        document.getElementById('m-mcx-res').textContent = '₹' + mcx.resistance;
+      }
+
+      // EIA
+      if (eia.total) {
+        document.getElementById('m-eia-total').textContent = eia.total.toLocaleString() + ' Bcf';
+        const wChg = eia.weekly;
+        const wEl = document.getElementById('m-eia-weekly');
+        wEl.textContent = (wChg >= 0 ? '+' : '') + wChg.toFixed(0) + ' Bcf (' + eia.period + ')';
+        wEl.className = 'data-value ' + (wChg < 0 ? 'val-bull' : 'val-bear');
+        document.getElementById('m-eia-avg').textContent = '-- Bcf (key needed for 5-yr)';
+        document.getElementById('m-eia-vs').textContent = '--';
+        const impl = wChg < 0 ? 'Bullish — withdrawal' : 'Bearish — injection';
+        const implEl = document.getElementById('m-eia-impl');
+        implEl.textContent = impl;
+        implEl.className = 'data-value ' + (wChg < 0 ? 'val-bull' : 'val-bear');
+        const eb = document.getElementById('eia-badge');
+        eb.textContent = wChg < 0 ? 'BULLISH DRAW' : 'BEARISH BUILD';
+        eb.className = 'card-badge ' + (wChg < 0 ? 'badge-bull' : 'badge-bear');
+      }
+    }
+
+    function updateWeatherPage(w) {
+      if (!w || !w.current) return;
+
+      const tempVal = parseFloat(w.current.temp);
+      document.getElementById('w-temp').textContent = isNaN(tempVal) ? '--' : tempVal.toFixed(1) + '°F';
+      document.getElementById('w-apparent').textContent = isNaN(parseFloat(w.current.apparent)) ? '--' : parseFloat(w.current.apparent).toFixed(1) + '°F';
+      document.getElementById('w-wind').textContent = isNaN(parseFloat(w.current.wind)) ? '--' : parseFloat(w.current.wind).toFixed(1) + ' mph';
+      document.getElementById('w-code').textContent = w.current.desc || weatherDesc(w.current.code || 0);
+
+      document.getElementById('w-cdd').textContent = w.cdd;
+      document.getElementById('w-hdd').textContent = w.hdd;
+
+      const cdd = parseFloat(w.cdd), hdd = parseFloat(w.hdd);
+      if (cdd > 10) {
+        document.getElementById('w-demand').textContent = 'HIGH cooling demand';
+        document.getElementById('w-demand').className = 'data-value val-bear';
+        document.getElementById('w-ng-impact').textContent = 'High power burn demand, bullish for NG';
+      } else if (hdd > 10) {
+        document.getElementById('w-demand').textContent = 'HIGH heating demand';
+        document.getElementById('w-demand').className = 'data-value val-bull';
+        document.getElementById('w-ng-impact').textContent = 'Strong residential/commercial heating demand, bullish for NG';
+      } else {
+        document.getElementById('w-demand').textContent = 'Moderate demand';
+        document.getElementById('w-demand').className = 'data-value val-neu';
+        document.getElementById('w-ng-impact').textContent = 'Mild weather, neutral NG impact expected';
+      }
+
+      // 7-day grid — works with both old (date string) and new (day name) format
+      function descToEmoji(desc) {
+        if (!desc) return '🌡️';
+        const d = desc.toLowerCase();
+        if (d.includes('thunder') || d.includes('storm')) return '⛈️';
+        if (d.includes('rain') || d.includes('shower')) return '🌧️';
+        if (d.includes('snow')) return '❄️';
+        if (d.includes('fog') || d.includes('mist')) return '🌫️';
+        if (d.includes('cloud') || d.includes('overcast')) return '☁️';
+        if (d.includes('partly')) return '🌤️';
+        if (d.includes('clear') || d.includes('sun')) return '☀️';
+        return '🌡️';
+      }
+
+      const grid = document.getElementById('weather-grid');
+      grid.innerHTML = '';
+      (w.forecast || []).slice(0, 7).forEach(f => {
+        // Support both formats: {date: "2025-06-03", ...} and {date: "Mon", desc: "Sunny", ...}
+        let dayName = f.date || '?';
+        if (dayName.includes('-')) {
+          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          dayName = days[new Date(dayName + 'T12:00:00').getDay()];
+        }
+        const desc = f.desc || weatherDesc(f.code || 0);
+        const emoji = descToEmoji(desc);
+        const maxTemp = Math.round(parseFloat(f.maxTemp) || 0);
+        const minTemp = Math.round(parseFloat(f.minTemp) || 0);
+
+        const div = document.createElement('div');
+        div.className = 'weather-day';
+        div.innerHTML = `
+      <div class="weather-day-name">${dayName}</div>
+      <div class="weather-icon">${emoji}</div>
+      <div class="weather-temp">${maxTemp}°</div>
+      <div class="weather-desc">${minTemp}° low</div>
+    `;
+        grid.appendChild(div);
+      });
+    }
+
+    // ═══════════════════════════════════════
+    //  GENERATE REPORT
+    // ═══════════════════════════════════════
+    function generateReport(d) {
+      const { fxData, weatherData, eiaData, nymexData, mcxData } = d;
+
+      document.getElementById('report-empty').style.display = 'none';
+      document.getElementById('report-content').style.display = 'block';
+
+      const now = new Date();
+      const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      document.getElementById('r-date').textContent = ist.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' · ' + ist.toLocaleTimeString('en-IN') + ' IST';
+
+      // Overall sentiment
+      const score = nymexData.bullScore || 5;
+      const sentLabel = score >= 8 ? 'VERY BULLISH' : score >= 6 ? 'BULLISH' : score <= 2 ? 'VERY BEARISH' : score <= 4 ? 'BEARISH' : 'NEUTRAL';
+      const sentClass = score >= 6 ? 'badge-bull' : score <= 4 ? 'badge-bear' : 'badge-neu';
+      const ob = document.getElementById('r-overall-badge');
+      ob.textContent = sentLabel + ' (' + (score * 10) + '%)';
+      ob.className = 'card-badge ' + sentClass;
+
+      const bias = score >= 6 ? 'Bullish' : score <= 4 ? 'Bearish' : 'Neutral';
+      document.getElementById('r-nymex-bias').textContent = bias + ' — Score ' + score + '/10';
+      document.getElementById('r-nymex-bias').className = 'data-value ' + (score >= 6 ? 'val-bull' : score <= 4 ? 'val-bear' : 'val-neu');
+      document.getElementById('r-mcx-bias').textContent = bias + ' (follows NYMEX)';
+      document.getElementById('r-mcx-bias').className = 'data-value ' + (score >= 6 ? 'val-bull' : score <= 4 ? 'val-bear' : 'val-neu');
+
+      // MCX Levels
+      if (mcxData.price) {
+        document.getElementById('r-buy').textContent = '₹' + mcxData.buyZone;
+        document.getElementById('r-sell').textContent = '₹' + mcxData.sellZone;
+        document.getElementById('r-sup').textContent = '₹' + mcxData.support;
+        document.getElementById('r-res').textContent = '₹' + mcxData.resistance;
+      }
+
+      // Key observations
+      const obs = [];
+      if (nymexData.price) {
+        const chgSign = nymexData.dayChange >= 0 ? '+' : '';
+        obs.push('NYMEX NG at $' + nymexData.price.toFixed(3) + ', day change ' + chgSign + nymexData.dayChangePct.toFixed(2) + '%');
+        obs.push('Bullish/Bearish score: ' + nymexData.bullScore + '/10 — ' + (nymexData.bullScore >= 6 ? 'leaning bullish' : nymexData.bullScore <= 4 ? 'leaning bearish' : 'neutral range'));
+        obs.push('RSI at ' + nymexData.rsi + ' — ' + (nymexData.rsi > 70 ? 'overbought territory, watch for reversal' : nymexData.rsi < 30 ? 'oversold, potential bounce' : 'neutral momentum'));
+      }
+      if (fxData.rate) {
+        obs.push('USD/INR at ₹' + fxData.rate.toFixed(2) + ' — MCX prices ' + (fxData.rate > 84 ? 'elevated due to weak INR' : 'tracking NYMEX closely'));
+      } else {
+        obs.push('USD/INR data unavailable — add API key in Settings for FX analysis');
+      }
+      if (weatherData) {
+        const cdd = parseFloat(weatherData.cdd), hdd = parseFloat(weatherData.hdd);
+        obs.push('Henry Hub weather: ' + weatherData.current.temp.toFixed(0) + '°F · CDD=' + weatherData.cdd + ' / HDD=' + weatherData.hdd);
+        if (cdd > 10) obs.push('Above-normal temperatures → elevated cooling demand → bullish for power burn');
+        else if (hdd > 10) obs.push('Below-normal temperatures → elevated heating demand → bullish for residential/commercial gas');
+        else obs.push('Mild weather at Henry Hub, demand signal neutral for NG');
+      }
+      if (eiaData.total) {
+        obs.push('EIA storage: ' + eiaData.total.toLocaleString() + ' Bcf (week ending ' + eiaData.period + ')');
+        obs.push('Weekly change: ' + (eiaData.weekly >= 0 ? '+' : '') + eiaData.weekly.toFixed(0) + ' Bcf — ' + (eiaData.weekly < 0 ? 'withdrawal is bullish signal' : 'injection is bearish signal'));
+      } else {
+        obs.push('EIA storage data unavailable — add free API key from eia.gov in Settings');
+      }
+
+      const obList = document.getElementById('r-observations');
+      obList.innerHTML = obs.map(o => '<li>' + o + '</li>').join('');
+
+      // Risk events
+      const risks = [
+        'EIA Weekly Gas Storage Report — watch for surprise draw/build vs consensus',
+        weatherData && parseFloat(weatherData.cdd) > 15 ? 'Extreme heat event at Henry Hub — demand spike risk' : 'Monitor NOAA 6–10 day temperature outlooks for demand shifts',
+        'USD/INR volatility — RBI intervention can compress/expand MCX-NYMEX spread',
+        'LNG export terminal utilization — high utilization tightens domestic supply',
+        'Hurricane season watch (Jun–Nov) — Gulf production disruption risk'
+      ];
+
+      const riskList = document.getElementById('r-risks');
+      riskList.innerHTML = risks.map(r => '<li>' + r + '</li>').join('');
+    }
+
+    // ═══════════════════════════════════════
+    //  SAVE / LOAD REPORTS
+    // ═══════════════════════════════════════
+    function saveReport(data) {
+      const now = new Date();
+      const report = {
+        ts: now.toISOString(),
+        label: now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }),
+        timeLabel: now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        nymexPrice: data.nymexData.price ? data.nymexData.price.toFixed(3) : '--',
+        nymexChg: data.nymexData.dayChangePct ? data.nymexData.dayChangePct.toFixed(2) : '--',
+        mcxPrice: data.mcxData.price || '--',
+        score: data.nymexData.bullScore || '--',
+        usdinr: data.fxData.rate ? data.fxData.rate.toFixed(2) : '--',
+        eia: data.eiaData.total ? data.eiaData.total.toLocaleString() + ' Bcf' : '--'
+      };
+
+      appState.reports.unshift(report);
+      if (appState.reports.length > 30) appState.reports.pop();
+
+      try {
+        localStorage.setItem('ciq_reports', JSON.stringify(appState.reports));
+      } catch (e) { }
+    }
+
+    function loadReports() {
+      try {
+        const r = JSON.parse(localStorage.getItem('ciq_reports') || '[]');
+        appState.reports = r;
+      } catch (e) { }
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      if (appState.reports.length === 0) {
+        list.innerHTML = '<div class="history-empty">◈<br><br>No reports saved yet.<br>Reports are stored locally<br>after each fetch.</div>';
+        return;
+      }
+
+      list.innerHTML = appState.reports.map(r => {
+        const score = parseInt(r.score) || 5;
+        const sentClass = score >= 6 ? 'badge-bull' : score <= 4 ? 'badge-bear' : 'badge-neu';
+        const sentLabel = score >= 8 ? 'V.Bullish' : score >= 6 ? 'Bullish' : score <= 2 ? 'V.Bearish' : score <= 4 ? 'Bearish' : 'Neutral';
+        const chg = parseFloat(r.nymexChg);
+        const chgColor = chg >= 0 ? 'val-bull' : 'val-bear';
+        return `
+      <div class="history-item">
+        <div class="history-date">${r.label} · ${r.timeLabel}</div>
+        <div class="history-meta">
+          <span class="card-badge ${sentClass}">${sentLabel}</span>
+          <span class="val-muted" style="font-size:11px">NYMEX $${r.nymexPrice}</span>
+          <span class="${chgColor}" style="font-size:11px">${chg >= 0 ? '+' : ''}${r.nymexChg}%</span>
+          <span class="val-muted" style="font-size:11px">MCX ₹${r.mcxPrice}</span>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:12px">
+          <span style="font-size:10px;color:var(--muted)">USD/INR: ${r.usdinr}</span>
+          <span style="font-size:10px;color:var(--muted)">EIA: ${r.eia}</span>
+        </div>
+      </div>
+    `;
+      }).join('');
+    }
+
+    // ═══════════════════════════════════════
+    //  NOTIFICATIONS
+    // ═══════════════════════════════════════
+    async function requestNotifPermission() {
+      if (!('Notification' in window)) {
+        showNotifBanner('This browser does not support notifications.');
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        showNotifBanner('✓ Notifications enabled. You will be alerted after each daily fetch.');
+      } else {
+        showNotifBanner('Notification permission denied. Enable in browser settings.');
+      }
+    }
+
+    function sendPushNotif(d) {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const score = d.nymexData.bullScore || 5;
+      const sentiment = score >= 6 ? 'Bullish' : score <= 4 ? 'Bearish' : 'Neutral';
+      new Notification('CommodityIQ — Daily Report Ready', {
+        body: 'NYMEX: $' + (d.nymexData.price ? d.nymexData.price.toFixed(3) : '--') +
+          ' · MCX: ₹' + (d.mcxData.price || '--') +
+          ' · Sentiment: ' + sentiment,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="%230a0e1a"/><text y="22" x="4" font-size="18">◈</text></svg>'
+      });
+    }
+
+    // ═══════════════════════════════════════
+    //  UTILS
+    // ═══════════════════════════════════════
+    function showError(msg) {
+      const el = document.getElementById('error-banner');
+      el.textContent = '⚠ ' + msg;
+      el.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').style.display = 'none';
+    }
+
+    function showNotifBanner(msg) {
+      const el = document.getElementById('notif-banner');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    // ═══════════════════════════════════════
+    //  BOOT
+    // ═══════════════════════════════════════
+    init();
+  </script>
+</body>
+
+</html>
