@@ -2122,25 +2122,51 @@ function generateReport(d) {
 // ═══════════════════════════════════════
 function saveReport(data) {
   const now = new Date();
+  const nx  = data.nymexData || {};
+  const mc  = data.mcxData   || {};
+  const fx  = data.fxData    || {};
+  const ei  = data.eiaData   || {};
+  const wx  = data.weatherData;
+
   const report = {
-    ts: now.toISOString(),
-    label: now.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric', timeZone:'Asia/Kolkata' }),
+    ts:        now.toISOString(),
+    label:     now.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric', timeZone:'Asia/Kolkata' }),
     timeLabel: now.toLocaleTimeString('en-IN', { timeZone:'Asia/Kolkata' }),
-    nymexPrice: data.nymexData.price ? data.nymexData.price.toFixed(3) : '--',
-    nymexChg: data.nymexData.dayChangePct ? data.nymexData.dayChangePct.toFixed(2) : '--',
-    mcxPrice: data.mcxData.price || '--',
-    score: data.nymexData.bullScore || '--',
-    usdinr: data.fxData.rate ? data.fxData.rate.toFixed(2) : '--',
-    eia: data.eiaData.total ? data.eiaData.total.toLocaleString() + ' Bcf' : '--'
+    nymexPrice:  nx.price        ? nx.price.toFixed(3)        : '--',
+    nymexChg:    nx.dayChangePct ? nx.dayChangePct.toFixed(2) : '--',
+    mcxPrice:    mc.price        || '--',
+    score:       nx.bullScore    || '--',
+    usdinr:      fx.rate         ? fx.rate.toFixed(2)         : '--',
+    eia:         ei.total        ? ei.total.toLocaleString() + ' Bcf' : '--',
+    nymexHigh52: nx.high52       ? nx.high52.toFixed(3)       : '--',
+    nymexLow52:  nx.low52        ? nx.low52.toFixed(3)        : '--',
+    nymexSupport:nx.support      || '--',
+    nymexResist: nx.resistance   || '--',
+    nymexRsi:    nx.rsi          || '--',
+    nymexMacd:   nx.macd         || '--',
+    nymexMa50:   nx.ma50         || '--',
+    nymexMa200:  nx.ma200        || '--',
+    nymexVol:    nx.vol          ? nx.vol.toLocaleString()    : '--',
+    mcxBuyZone:  mc.buyZone      || '--',
+    mcxSellZone: mc.sellZone     || '--',
+    mcxSupport:  mc.support      || '--',
+    mcxResist:   mc.resistance   || '--',
+    mcxChg:      mc.dayChg       || '--',
+    mcxChgPct:   mc.dayChgPct    || '--',
+    eiaWeekly:   ei.weekly != null ? (ei.weekly >= 0 ? '+' : '') + Number(ei.weekly).toFixed(0) + ' Bcf' : '--',
+    eiaPeriod:   ei.period       || '--',
+    wxTemp:      wx && wx.current ? wx.current.temp.toFixed(1) + 'F' : '--',
+    wxWind:      wx && wx.current ? wx.current.wind.toFixed(1) + ' mph' : '--',
+    wxDesc:      wx && wx.current ? (wx.current.desc || '--') : '--',
+    wxCdd:       wx ? wx.cdd : '--',
+    wxHdd:       wx ? wx.hdd : '--',
   };
 
   appState.reports.unshift(report);
   if (appState.reports.length > 30) appState.reports.pop();
-
-  try {
-    localStorage.setItem('ciq_reports', JSON.stringify(appState.reports));
-  } catch(e) {}
+  try { localStorage.setItem('ciq_reports', JSON.stringify(appState.reports)); } catch(e) {}
 }
+
 
 function loadReports() {
   try {
@@ -2152,33 +2178,89 @@ function loadReports() {
 function renderHistory() {
   const list = document.getElementById('history-list');
   if (appState.reports.length === 0) {
-    list.innerHTML = '<div class="history-empty">◈<br><br>No reports saved yet.<br>Reports are stored locally<br>after each fetch.</div>';
+    list.innerHTML = '<div class="history-empty">No reports saved yet.<br>Reports are stored after each fetch.</div>';
     return;
   }
 
-  list.innerHTML = appState.reports.map(r => {
-    const score = parseInt(r.score) || 5;
+  list.innerHTML = appState.reports.map((r, idx) => {
+    const score    = parseInt(r.score) || 5;
     const sentClass = score >= 6 ? 'badge-bull' : score <= 4 ? 'badge-bear' : 'badge-neu';
     const sentLabel = score >= 8 ? 'V.Bullish' : score >= 6 ? 'Bullish' : score <= 2 ? 'V.Bearish' : score <= 4 ? 'Bearish' : 'Neutral';
-    const chg = parseFloat(r.nymexChg);
+    const chg      = parseFloat(r.nymexChg);
     const chgColor = chg >= 0 ? 'val-bull' : 'val-bear';
+    const eiaColor = r.eiaWeekly && r.eiaWeekly.startsWith('-') ? 'val-bull' : 'val-bear';
+
     return `
-      <div class="history-item">
-        <div class="history-date">${r.label} · ${r.timeLabel}</div>
-        <div class="history-meta">
+      <div class="history-item" onclick="toggleHistory(${idx})" style="cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="history-date">${r.label} &middot; ${r.timeLabel}</div>
+          <span style="color:var(--muted);font-size:14px" id="hist-arrow-${idx}">&#9660;</span>
+        </div>
+        <div class="history-meta" style="margin-top:6px">
           <span class="card-badge ${sentClass}">${sentLabel}</span>
           <span class="val-muted" style="font-size:11px">NYMEX $${r.nymexPrice}</span>
           <span class="${chgColor}" style="font-size:11px">${chg>=0?'+':''}${r.nymexChg}%</span>
-          <span class="val-muted" style="font-size:11px">MCX ₹${r.mcxPrice}</span>
+          <span class="val-muted" style="font-size:11px">MCX &#8377;${r.mcxPrice}</span>
         </div>
-        <div style="margin-top:6px;display:flex;gap:12px">
-          <span style="font-size:10px;color:var(--muted)">USD/INR: ${r.usdinr}</span>
-          <span style="font-size:10px;color:var(--muted)">EIA: ${r.eia}</span>
+
+        <div id="hist-detail-${idx}" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+
+          <div style="font-family:var(--font-head);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">NYMEX</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:10px">
+            <span style="font-size:11px;color:var(--muted)">Price</span>     <span style="font-size:11px;font-weight:700">$${r.nymexPrice}</span>
+            <span style="font-size:11px;color:var(--muted)">Day chg</span>   <span style="font-size:11px" class="${chgColor}">${chg>=0?'+':''}${r.nymexChg}%</span>
+            <span style="font-size:11px;color:var(--muted)">52w High</span>  <span style="font-size:11px">$${r.nymexHigh52||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">52w Low</span>   <span style="font-size:11px">$${r.nymexLow52||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Support</span>   <span style="font-size:11px;color:var(--bull)">$${r.nymexSupport||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Resist</span>    <span style="font-size:11px;color:var(--bear)">$${r.nymexResist||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">RSI</span>       <span style="font-size:11px">${r.nymexRsi||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">MACD</span>      <span style="font-size:11px">${r.nymexMacd||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">MA 50</span>     <span style="font-size:11px">$${r.nymexMa50||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">MA 200</span>    <span style="font-size:11px">$${r.nymexMa200||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Score</span>     <span style="font-size:11px;color:var(--accent)">${r.score||'--'}/10</span>
+            <span style="font-size:11px;color:var(--muted)">Volume</span>    <span style="font-size:11px">${r.nymexVol||'--'}</span>
+          </div>
+
+          <div style="font-family:var(--font-head);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">MCX (Est.)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:10px">
+            <span style="font-size:11px;color:var(--muted)">Price</span>      <span style="font-size:11px;font-weight:700">&#8377;${r.mcxPrice}</span>
+            <span style="font-size:11px;color:var(--muted)">Day chg</span>    <span style="font-size:11px">${r.mcxChg||'--'} (${r.mcxChgPct||'--'}%)</span>
+            <span style="font-size:11px;color:var(--muted)">Buy zone</span>   <span style="font-size:11px;color:var(--bull)">&#8377;${r.mcxBuyZone||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Sell zone</span>  <span style="font-size:11px;color:var(--bear)">&#8377;${r.mcxSellZone||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Support</span>    <span style="font-size:11px;color:var(--bull)">&#8377;${r.mcxSupport||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Resist</span>     <span style="font-size:11px;color:var(--bear)">&#8377;${r.mcxResist||'--'}</span>
+          </div>
+
+          <div style="font-family:var(--font-head);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">USD/INR &amp; EIA</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:10px">
+            <span style="font-size:11px;color:var(--muted)">USD/INR</span>    <span style="font-size:11px;font-weight:700">&#8377;${r.usdinr}</span>
+            <span style="font-size:11px;color:var(--muted)">EIA total</span>  <span style="font-size:11px">${r.eia}</span>
+            <span style="font-size:11px;color:var(--muted)">Weekly chg</span> <span style="font-size:11px" class="${eiaColor}">${r.eiaWeekly||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Period</span>     <span style="font-size:11px">${r.eiaPeriod||'--'}</span>
+          </div>
+
+          <div style="font-family:var(--font-head);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Weather (Henry Hub)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px">
+            <span style="font-size:11px;color:var(--muted)">Temp</span>  <span style="font-size:11px">${r.wxTemp||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Wind</span>  <span style="font-size:11px">${r.wxWind||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">Cond</span>  <span style="font-size:11px">${r.wxDesc||'--'}</span>
+            <span style="font-size:11px;color:var(--muted)">CDD/HDD</span> <span style="font-size:11px">${r.wxCdd||'--'} / ${r.wxHdd||'--'}</span>
+          </div>
         </div>
       </div>
     `;
   }).join('');
 }
+
+function toggleHistory(idx) {
+  const detail = document.getElementById('hist-detail-' + idx);
+  const arrow  = document.getElementById('hist-arrow-' + idx);
+  if (!detail) return;
+  const open = detail.style.display === 'block';
+  detail.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.innerHTML = open ? '&#9660;' : '&#9650;';
+}
+
 
 // ═══════════════════════════════════════
 //  NOTIFICATIONS
