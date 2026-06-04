@@ -1764,6 +1764,29 @@ function calcRSI14(closes) {
 // ═══════════════════════════════════════
 //  BULL SCORE CALCULATOR
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//  MCX ESTIMATE
+// ═══════════════════════════════════════
+function calcMCX(nymex, fx) {
+  if (!nymex.price || !fx.rate) {
+    return { price: null, note: 'Waiting for FX and NYMEX data' };
+  }
+  const spread    = 0.98;
+  const mcxPrice  = nymex.price     * fx.rate * spread;
+  const prevMcx   = nymex.prevClose * fx.rate * spread;
+  const dayChg    = mcxPrice - prevMcx;
+  const dayChgPct = prevMcx > 0 ? (dayChg / prevMcx) * 100 : 0;
+  return {
+    price:      mcxPrice.toFixed(0),
+    dayChg:     dayChg.toFixed(0),
+    dayChgPct:  dayChgPct.toFixed(2),
+    buyZone:    (mcxPrice * 0.985).toFixed(0) + '–' + (mcxPrice * 0.995).toFixed(0),
+    sellZone:   (mcxPrice * 1.005).toFixed(0) + '–' + (mcxPrice * 1.015).toFixed(0),
+    support:    (mcxPrice * 0.97).toFixed(0),
+    resistance: (mcxPrice * 1.03).toFixed(0),
+  };
+}
+
 function calcBullScore(price, prev, high52, low52, rsi) {
   let score = 5;
   const chgPct = ((price - prev) / prev) * 100;
