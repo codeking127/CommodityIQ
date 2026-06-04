@@ -1233,9 +1233,9 @@
     </div>
     <div class="card-body">
       <div class="setting-row" style="flex-direction:column;align-items:flex-start">
-        <div class="setting-label">Alpha Vantage API Key</div>
-        <div class="setting-sub">Free at alphavantage.co — for NYMEX Natural Gas + USD/INR · 25 calls/day free</div>
-        <input type="text" class="api-input" id="er-key-input" placeholder="e.g. MQ2O61LI1N85F2YC">
+        <div class="setting-label">ExchangeRate API Key</div>
+        <div class="setting-sub">Free at exchangerate-api.com — for USD/INR · starts with 8 digits e.g. 51658581...</div>
+        <input type="text" class="api-input" id="er-key-input" placeholder="e.g. 51658581abcec6bfe93e08db">
       </div>
       <div class="setting-row" style="flex-direction:column;align-items:flex-start;border-bottom:none">
         <div class="setting-label">EIA API Key</div>
@@ -1263,8 +1263,9 @@
   <div class="note-box">
     ◈ All data stored locally on your device only.<br>
     ◈ API keys are saved in browser localStorage.<br>
-    ◈ Alpha Vantage: NYMEX Natural Gas + USD/INR (25 free calls/day).<br>
-    ◈ Weather: Open-Meteo (no key needed, always free).
+    ◈ API keys are saved in browser localStorage.<br>
+    ◈ Weather data: Open-Meteo (no key needed).<br>
+    ◈ NYMEX: Yahoo Finance via /api/nymex proxy.
   </div>
 
   <button class="save-btn" onclick="saveSettings()">Save Settings</button>
@@ -1535,10 +1536,26 @@ function withTimeout(promise, ms, label) {
   return Promise.race([promise, timer]);
 }
 
-// fetchFX is now handled inside fetchNYMEX via /api/market
-// This stub is kept so existing code references don't break
 async function fetchFX() {
-  return { rate: null, note: 'Handled by /api/market' };
+  if (!appState.erKey) {
+    return { rate: null, note: 'No API key — add in Settings' };
+  }
+  const url = `https://v6.exchangerate-api.com/v6/${appState.erKey}/pair/USD/INR`;
+  let res;
+  try {
+    res = await fetch(url);
+  } catch(e) {
+    throw new Error('FX: ' + e.message);
+  }
+  if (res.status === 403) throw new Error('FX: Invalid API key. Re-check in Settings.');
+  if (res.status === 429) throw new Error('FX: Rate limit hit — free tier is 1500 calls/month.');
+  if (!res.ok) throw new Error('FX: HTTP ' + res.status);
+  const d = await res.json();
+  if (d.result !== 'success') throw new Error('FX: ' + (d['error-type'] || 'API error'));
+  return {
+    rate: d.conversion_rate,
+    note: 'Live · ' + new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
+  };
 }
 
 // ═══════════════════════════════════════
@@ -1677,75 +1694,70 @@ async function fetchEIALegacy() {
 }
 
 // ═══════════════════════════════════════
-//  FETCH MARKET DATA — via /api/market
-//  Single call returns NYMEX + FX + MCX
-//  All powered by Alpha Vantage server-side
+//  FETCH NYMEX — via /api/nymex
+//  Calls Vercel serverless proxy
+//  which tries Yahoo Finance server-side.
 // ═══════════════════════════════════════
 async function fetchNYMEX() {
   let res;
   try {
-    res = await fetch('/api/market');
+    res = await fetch('/api/nymex');
   } catch(e) {
-    throw new Error('Market API: ' + e.message);
+    throw new Error('NYMEX: ' + e.message);
   }
-
   const d = await res.json();
-  if (!res.ok) throw new Error('Market API: ' + (d.error || 'HTTP ' + res.status));
-  if (!d.nymex?.price) throw new Error('Market API: No NYMEX price in response');
+  if (!res.ok) throw new Error('NYMEX: ' + (d.error || 'HTTP ' + res.status));
+  if (!d.price) throw new Error('NYMEX: no price in response');
 
-  // Inject FX into appState so updateUI can use it
-  if (d.fx?.rate) {
-    appState._liveRate = d.fx.rate;
-    appState._fxNote   = d.fx.note || 'Live via Alpha Vantage';
-  }
+  const price     = parseFloat(d.price);
+  const prevClose = parseFloat(d.prevClose) || price;
+  const high52    = parseFloat(d.high52)    || price * 1.3;
+  const low52     = parseFloat(d.low52)     || price * 0.7;
+  const vol       = parseInt(d.volume)      || 0;
 
-  // Inject MCX into appState so calcMCX can return it directly
-  if (d.mcx) {
-    appState._mcx = d.mcx;
-  }
+  const dayChange    = price - prevClose;
+  const dayChangePct = prevClose > 0 ? (dayChange / prevClose) * 100 : 0;
+
+  const closes = (d.closes || []).filter(v => v != null).reverse();
+  const ma50  = closes.length >= 50
+    ? (closes.slice(0, 50).reduce((a, b) => a + b, 0) / 50).toFixed(3)
+    : (price * 0.985).toFixed(3);
+  const ma200 = closes.length >= 200
+    ? (closes.slice(0, 200).reduce((a, b) => a + b, 0) / 200).toFixed(3)
+    : (price * 0.930).toFixed(3);
+
+  const rsi       = calcRSI14(closes);
+  const bullScore = calcBullScore(price, prevClose, high52, low52, rsi);
+
+  const highs5 = (d.highs || []).filter(v => v != null);
+  const lows5  = (d.lows  || []).filter(v => v != null);
+  const support    = lows5.length  ? Math.min(...lows5).toFixed(3)  : (price * 0.97).toFixed(3);
+  const resistance = highs5.length ? Math.max(...highs5).toFixed(3) : (price * 1.03).toFixed(3);
 
   return {
-    price:        d.nymex.price,
-    prevClose:    d.nymex.prevClose,
-    dayChange:    d.nymex.dayChange,
-    dayChangePct: d.nymex.dayChangePct,
-    high52:       d.nymex.high52,
-    low52:        d.nymex.low52,
-    support:      d.nymex.support,
-    resistance:   d.nymex.resistance,
-    rsi:          d.nymex.rsi,
-    macd:         d.nymex.macd,
-    ma50:         d.nymex.ma50,
-    ma200:        d.nymex.ma200,
-    bullScore:    d.nymex.bullScore,
-    vol:          0,
-    symbol:       d.nymex.symbol,
-    latestDate:   d.nymex.latestDate,
+    price, prevClose, dayChange, dayChangePct,
+    high52, low52, vol,
+    support, resistance, ma50, ma200,
+    rsi:   rsi.toFixed(0),
+    macd:  dayChange > 0 ? 'Positive' : 'Negative',
+    bullScore,
+    symbol: 'NG=F'
   };
 }
 
-function calcRSI14() { return 50; } // RSI now comes from Alpha Vantage server-side
-
-function calcMCX(nymex, fx) {
-  // If server returned real MCX data, use it
-  if (appState._mcx) return appState._mcx;
-
-  // Fallback: compute locally if server MCX missing
-  const rate = appState._liveRate || fx.rate;
-  if (!nymex.price || !rate) return { price: null, note: 'Waiting for data' };
-  const raw      = nymex.price * rate * 0.98;
-  const prevRaw  = nymex.prevClose * rate * 0.98;
-  const dayChg   = raw - prevRaw;
-  const dayChgPct = prevRaw > 0 ? (dayChg / prevRaw) * 100 : 0;
-  return {
-    price:      raw.toFixed(0),
-    dayChg:     dayChg.toFixed(0),
-    dayChgPct:  dayChgPct.toFixed(2),
-    buyZone:    (raw * 0.985).toFixed(0) + '–' + (raw * 0.995).toFixed(0),
-    sellZone:   (raw * 1.005).toFixed(0) + '–' + (raw * 1.015).toFixed(0),
-    support:    (raw * 0.97).toFixed(0),
-    resistance: (raw * 1.03).toFixed(0),
-  };
+function calcRSI14(closes) {
+  if (closes.length < 15) return 50;
+  const c = closes.slice(0, 15).reverse();
+  let gains = 0, losses = 0;
+  for (let i = 1; i < c.length; i++) {
+    const diff = c[i] - c[i - 1];
+    if (diff > 0) gains  += diff;
+    else          losses -= diff;
+  }
+  const avg = gains / 14;
+  const avl = losses / 14;
+  if (avl === 0) return 100;
+  return parseFloat((100 - 100 / (1 + avg / avl)).toFixed(1));
 }
 
 
