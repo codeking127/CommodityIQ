@@ -1526,6 +1526,8 @@ async function fetchAllData() {
 //  Works in all contexts including file://
 //  No AbortController — uses Promise.race
 // ═══════════════════════════════════════
+// withTimeout kept as 60s safety net only — prevents infinite hangs
+// All normal fetches use plain fetch() with no timeout
 function withTimeout(promise, ms, label) {
   const timer = new Promise((_, reject) =>
     setTimeout(() => reject(new Error(label || 'Request timed out after ' + ms + 'ms')), ms)
@@ -1542,7 +1544,7 @@ async function fetchFX() {
 
   let res;
   try {
-    res = await withTimeout(fetch(url), 12000, 'FX request timed out');
+    res = await fetch(url);
   } catch(e) {
     throw new Error('FX: ' + e.message);
   }
@@ -1581,7 +1583,7 @@ async function fetchWeather() {
 
   let res;
   try {
-    res = await withTimeout(fetch(url), 12000, 'Weather timed out');
+    res = await fetch(url);
   } catch(e) {
     throw new Error('Weather: ' + e.message);
   }
@@ -1639,7 +1641,7 @@ async function fetchEIA() {
 
   let res;
   try {
-    res = await withTimeout(fetch(url), 15000, 'EIA request timed out');
+    res = await fetch(url);
   } catch(e) {
     throw new Error('EIA: ' + e.message);
   }
@@ -1671,7 +1673,7 @@ async function fetchEIALegacy() {
 
   let res;
   try {
-    res = await withTimeout(fetch(url), 12000, 'EIA legacy timed out');
+    res = await fetch(url);
   } catch(e) {
     throw new Error('EIA legacy: ' + e.message);
   }
@@ -1704,7 +1706,7 @@ async function fetchEIALegacy() {
 async function fetchNYMEX() {
   let res;
   try {
-    res = await withTimeout(fetch('/api/nymex'), 15000, 'NYMEX timed out');
+    res = await fetch('/api/nymex');
   } catch(e) {
     throw new Error('NYMEX: ' + e.message);
   }
