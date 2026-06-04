@@ -1461,10 +1461,10 @@ async function fetchAllData() {
 
   const errors = [];
 
-  // Step 1: USD/INR
+  // Step 1: NYMEX + USD/INR (both come from /api/nymex)
   showLoading(0);
-  let fxData = { rate: null, note: 'Failed to fetch' };
-  try { fxData = await fetchFX(); } catch(e) { errors.push('FX: ' + e.message); console.warn('FX failed:', e); }
+  let nymexData = { price: null, note: 'Failed to fetch' };
+  try { nymexData = await fetchNYMEX(); } catch(e) { errors.push('NYMEX: ' + e.message); console.warn('NYMEX failed:', e); }
 
   // Step 2: Weather
   showLoading(1);
@@ -1476,10 +1476,10 @@ async function fetchAllData() {
   let eiaData = { total: null, note: 'Failed to fetch' };
   try { eiaData = await fetchEIA(); } catch(e) { errors.push('EIA: ' + e.message); console.warn('EIA failed:', e); }
 
-  // Step 4: NYMEX
+  // Step 4: FX — reads live rate stored by fetchNYMEX above
   showLoading(3);
-  let nymexData = { price: null, note: 'Failed to fetch' };
-  try { nymexData = await fetchNYMEX(); } catch(e) { errors.push('NYMEX: ' + e.message); console.warn('NYMEX failed:', e); }
+  let fxData = { rate: null, note: 'Failed to fetch' };
+  try { fxData = await fetchFX(); } catch(e) { errors.push('FX: ' + e.message); console.warn('FX failed:', e); }
 
   // Step 5: MCX calc
   showLoading(4);
@@ -1526,42 +1526,14 @@ function withTimeout(promise, ms, label) {
 }
 
 async function fetchFX() {
-  // Frankfurter API — European Central Bank rates
-  // Updates in real-time during forex market hours
-  // No key, no limits, no signup
-  // Primary: frankfurter.app | Fallback: fawazahmed0
-  const urls = [
-    {
-      url: 'https://api.frankfurter.app/latest?from=USD&to=INR',
-      parse: d => d?.rates?.INR
-    },
-    {
-      url: 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
-      parse: d => d?.usd?.inr
-    },
-    {
-      url: 'https://latest.currency-api.pages.dev/v1/currencies/usd.json',
-      parse: d => d?.usd?.inr
-    }
-  ];
-
-  let lastErr = '';
-  for (const { url, parse } of urls) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) { lastErr = 'HTTP ' + res.status; continue; }
-      const d    = await res.json();
-      const rate = parse(d);
-      if (!rate || isNaN(rate)) { lastErr = 'rate missing'; continue; }
-      return {
-        rate: parseFloat(rate),
-        note: 'Live · ' + new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-      };
-    } catch(e) {
-      lastErr = e.message;
-    }
-  }
-  throw new Error('FX: all sources failed — ' + lastErr);
+  // USD/INR is now fetched server-side inside /api/nymex
+  // alongside NYMEX data — same Yahoo Finance source as Google.
+  // fetchNYMEX() stores the rate in appState._liveRate.
+  // This function just reads it back out.
+  const rate = appState._liveRate;
+  const note = appState._fxNote;
+  if (!rate) return { rate: null, note: 'Waiting for NYMEX fetch' };
+  return { rate, note: note || 'Live · Yahoo Finance' };
 }
 
 // ═══════════════════════════════════════
@@ -1701,8 +1673,8 @@ async function fetchEIALegacy() {
 
 // ═══════════════════════════════════════
 //  FETCH NYMEX — via /api/nymex
-//  Calls Vercel serverless proxy
-//  which tries Yahoo Finance server-side.
+//  Also returns live USD/INR from Yahoo
+//  Stores rate in appState._liveRate
 // ═══════════════════════════════════════
 async function fetchNYMEX() {
   let res;
@@ -1714,6 +1686,12 @@ async function fetchNYMEX() {
   const d = await res.json();
   if (!res.ok) throw new Error('NYMEX: ' + (d.error || 'HTTP ' + res.status));
   if (!d.price) throw new Error('NYMEX: no price in response');
+
+  // Store live USD/INR for fetchFX to use
+  if (d.usdInr) {
+    appState._liveRate = parseFloat(d.usdInr);
+    appState._fxNote   = d.usdInrNote || 'Live · Yahoo Finance';
+  }
 
   const price     = parseFloat(d.price);
   const prevClose = parseFloat(d.prevClose) || price;
