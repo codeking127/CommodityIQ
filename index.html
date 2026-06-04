@@ -1232,11 +1232,6 @@
       <div class="card-title">API Keys</div>
     </div>
     <div class="card-body">
-      <div class="setting-row" style="flex-direction:column;align-items:flex-start">
-        <div class="setting-label">ExchangeRate API Key</div>
-        <div class="setting-sub">Free at exchangerate-api.com — for USD/INR · starts with 8 digits e.g. 51658581...</div>
-        <input type="text" class="api-input" id="er-key-input" placeholder="e.g. 51658581abcec6bfe93e08db">
-      </div>
       <div class="setting-row" style="flex-direction:column;align-items:flex-start;border-bottom:none">
         <div class="setting-label">EIA API Key</div>
         <div class="setting-sub">Free at eia.gov/opendata — for US Gas inventory · longer alphanumeric key</div>
@@ -1262,9 +1257,8 @@
 
   <div class="note-box">
     ◈ All data stored locally on your device only.<br>
-    ◈ API keys are saved in browser localStorage.<br>
-    ◈ API keys are saved in browser localStorage.<br>
-    ◈ Weather data: Open-Meteo (no key needed).<br>
+    ◈ USD/INR: fawazahmed0 free currency API (no key, no limits).<br>
+    ◈ Weather: Open-Meteo (no key needed).<br>
     ◈ NYMEX: Yahoo Finance via /api/nymex proxy.
   </div>
 
@@ -1279,7 +1273,6 @@ let appState = {
   lastData: null,
   scheduleTime: '19:00',
   eiaKey: '',
-  erKey: '',
   reports: []
 };
 
@@ -1324,10 +1317,8 @@ function loadSettings() {
     const s = JSON.parse(localStorage.getItem('ciq_settings') || '{}');
     if (s.scheduleTime) appState.scheduleTime = s.scheduleTime;
     if (s.eiaKey)       appState.eiaKey = s.eiaKey;
-    if (s.erKey)        appState.erKey = s.erKey;
 
     document.getElementById('eia-key-input').value = appState.eiaKey;
-    document.getElementById('er-key-input').value  = appState.erKey;
     document.getElementById('sched-time-input').value = appState.scheduleTime;
   } catch(e) {}
 }
@@ -1335,12 +1326,10 @@ function loadSettings() {
 function saveSettings() {
   appState.scheduleTime = document.getElementById('sched-time-input').value;
   appState.eiaKey = document.getElementById('eia-key-input').value.trim();
-  appState.erKey  = document.getElementById('er-key-input').value.trim();
 
   localStorage.setItem('ciq_settings', JSON.stringify({
     scheduleTime: appState.scheduleTime,
     eiaKey: appState.eiaKey,
-    erKey: appState.erKey
   }));
 
   document.getElementById('sched-time').textContent = appState.scheduleTime;
@@ -1537,25 +1526,42 @@ function withTimeout(promise, ms, label) {
 }
 
 async function fetchFX() {
-  if (!appState.erKey) {
-    return { rate: null, note: 'No API key — add in Settings' };
+  // Frankfurter API — European Central Bank rates
+  // Updates in real-time during forex market hours
+  // No key, no limits, no signup
+  // Primary: frankfurter.app | Fallback: fawazahmed0
+  const urls = [
+    {
+      url: 'https://api.frankfurter.app/latest?from=USD&to=INR',
+      parse: d => d?.rates?.INR
+    },
+    {
+      url: 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
+      parse: d => d?.usd?.inr
+    },
+    {
+      url: 'https://latest.currency-api.pages.dev/v1/currencies/usd.json',
+      parse: d => d?.usd?.inr
+    }
+  ];
+
+  let lastErr = '';
+  for (const { url, parse } of urls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) { lastErr = 'HTTP ' + res.status; continue; }
+      const d    = await res.json();
+      const rate = parse(d);
+      if (!rate || isNaN(rate)) { lastErr = 'rate missing'; continue; }
+      return {
+        rate: parseFloat(rate),
+        note: 'Live · ' + new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
+      };
+    } catch(e) {
+      lastErr = e.message;
+    }
   }
-  const url = `https://v6.exchangerate-api.com/v6/${appState.erKey}/pair/USD/INR`;
-  let res;
-  try {
-    res = await fetch(url);
-  } catch(e) {
-    throw new Error('FX: ' + e.message);
-  }
-  if (res.status === 403) throw new Error('FX: Invalid API key. Re-check in Settings.');
-  if (res.status === 429) throw new Error('FX: Rate limit hit — free tier is 1500 calls/month.');
-  if (!res.ok) throw new Error('FX: HTTP ' + res.status);
-  const d = await res.json();
-  if (d.result !== 'success') throw new Error('FX: ' + (d['error-type'] || 'API error'));
-  return {
-    rate: d.conversion_rate,
-    note: 'Live · ' + new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-  };
+  throw new Error('FX: all sources failed — ' + lastErr);
 }
 
 // ═══════════════════════════════════════
